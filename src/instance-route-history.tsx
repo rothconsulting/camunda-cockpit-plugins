@@ -8,6 +8,7 @@ import { Tab, TabList, TabPanel, Tabs } from 'react-tabs';
 import AuditLogTable from './Components/AuditLogTable';
 import BPMN from './Components/BPMN';
 import BreadcrumbsPanel from './Components/BreadcrumbsPanel';
+import { Clippy } from './Components/Clippy';
 import Container from './Components/Container';
 import HistoryTable from './Components/HistoryTable';
 import Page from './Components/Page';
@@ -55,11 +56,15 @@ export default [
       if (processInstanceId) {
         (async () => {
           const instance = await get(api, `/history/process-instance/${processInstanceId}`);
-          const [diagram, activities, variables] = await Promise.all([
+          const [diagram, activities, variables, decisions] = await Promise.all([
             get(api, `/process-definition/${instance.processDefinitionId}/xml`),
             get(api, '/history/activity-instance', { processInstanceId }),
             get(api, '/history/variable-instance', { processInstanceId }),
+            get(api, '/history/decision-instance', { processInstanceId }),
           ]);
+          const decisionByActivity: Map<string, any> = new Map(
+            decisions.map((decision: any) => [decision.activityInstanceId, decision.id])
+          );
           activities.sort((a: any, b: any) => {
             a = a.endTime ? new Date(a.endTime) : new Date();
             b = b.endTime ? new Date(b.endTime) : new Date();
@@ -94,23 +99,48 @@ export default [
                   <SplitPane split="vertical" size={200}>
                     <div className="ctn-column">
                       <dl className="process-information">
-                        <dt>Instance ID:</dt>
+                        <dt>
+                          <Clippy value={instance.id}>Instance ID:</Clippy>
+                        </dt>
                         <dd>{instance.id}</dd>
-                        <dt>Business Key:</dt>
+                        <dt>
+                          <Clippy value={instance.businessKey || 'null'}>Business Key:</Clippy>
+                        </dt>
                         <dd>{instance.businessKey || 'null'}</dd>
-                        <dt>Definition Version:</dt>
+                        <dt>
+                          <Clippy value={instance.processDefinitionVersion}>Definition Version:</Clippy>
+                        </dt>
                         <dd>{instance.processDefinitionVersion}</dd>
-                        <dt>Definition ID:</dt>
+                        <dt>
+                          <Clippy value={instance.processdefinitionid}>Definition ID:</Clippy>
+                        </dt>
                         <dd>{instance.processDefinitionId}</dd>
-                        <dt>Definition Key:</dt>
+                        <dt>
+                          <Clippy value={instance.processDefinitionKey}>Definition Key:</Clippy>
+                        </dt>
                         <dd>{instance.processDefinitionKey}</dd>
-                        <dt>Definition Name:</dt>
+                        <dt>
+                          <Clippy value={instance.processDefinitionName}>Definition Name:</Clippy>
+                        </dt>
                         <dd>{instance.processDefinitionName}</dd>
-                        <dt>Tenant ID:</dt>
+                        <dt>
+                          <Clippy value={instance.tenantId || 'null'}>Tenant ID:</Clippy>
+                        </dt>
                         <dd>{instance.tenantId || 'null'}</dd>
-                        <dt>Super Process Instance ID:</dt>
-                        <dd>{instance.superProcessInstanceId || 'null'}</dd>
-                        <dt>State</dt>
+                        <dt>
+                          <Clippy value={instance.superProcessInstanceId}>Super Process instance ID:</Clippy>
+                        </dt>
+                        <dd>
+                          {(instance.superProcessInstanceId && (
+                            <a href={`#/history/process-instance/${instance.superProcessInstanceId}`}>
+                              {instance.superProcessInstanceId}
+                            </a>
+                          )) ||
+                            'null'}
+                        </dd>
+                        <dt>
+                          <Clippy value={instance.state}>State</Clippy>
+                        </dt>
                         <dd>{instance.state}</dd>
                       </dl>
                     </div>
@@ -131,7 +161,7 @@ export default [
                           </Tab>
                         </TabList>
                         <TabPanel className="ctn-tabbed-content ctn-scroll">
-                          <AuditLogTable activities={activities} />
+                          <AuditLogTable activities={activities} decisions={decisionByActivity} />
                         </TabPanel>
                         <TabPanel className="ctn-tabbed-content ctn-scroll">
                           <VariablesTable

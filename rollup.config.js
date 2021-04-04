@@ -35,6 +35,10 @@ export default [
     plugins,
   },
   {
+    onwarn: function(warning, superOnWarn) {
+      if (warning.code === 'THIS_IS_UNDEFINED') { return; }
+      superOnWarn(warning);
+    },
     input: "src/instance-historic-activities.tsx",
     output: {
       file: "instance-historic-activities.js",
@@ -42,6 +46,10 @@ export default [
     plugins,
   },
   {
+    onwarn: function(warning, superOnWarn) {
+      if (warning.code === 'THIS_IS_UNDEFINED') { return; }
+      superOnWarn(warning);
+    },
     input: "src/definition-historic-activities.tsx",
     output: {
       file: "definition-historic-activities.js",
@@ -49,9 +57,24 @@ export default [
     plugins,
   },
   {
+    onwarn: function(warning, superOnWarn) {
+      if (warning.code === 'THIS_IS_UNDEFINED') { return; }
+      superOnWarn(warning);
+    },
     input: "src/instance-route-history.tsx",
     output: {
       file: "instance-route-history.js",
+    },
+    plugins,
+  },
+  {
+    onwarn: function(warning, superOnWarn) {
+      if (warning.code === 'THIS_IS_UNDEFINED') { return; }
+      superOnWarn(warning);
+    },
+    input: "src/instance-tab-modify.tsx",
+    output: {
+      file: "instance-tab-modify.js",
     },
     plugins,
   },

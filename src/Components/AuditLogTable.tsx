@@ -5,14 +5,25 @@ import { asctime } from '../utils/misc';
 
 interface Props {
   activities: any[];
+  decisions: Map<string, string>;
 }
 
-const AuditLogTable: React.FC<Props> = ({ activities }) => {
+const AuditLogTable: React.FC<Props> = ({ activities, decisions }) => {
   const columns = React.useMemo(
     () => [
       {
         Header: 'Activity Name',
         accessor: 'activityName',
+        Cell: ({ value }: any) => {
+          if (value.activityType === 'businessRuleTask' && decisions.has(value.id)) {
+            return <a href={`#/decision-instance/${decisions.get(value.id)}`}>{value.activityName}</a>;
+          } else if (value.activityType === 'callActivity' && value.calledProcessInstanceId && value.endTime) {
+            return <a href={`#/history/process-instance/${value.calledProcessInstanceId}`}>{value.activityName}</a>;
+          } else if (value.activityType === 'callActivity' && value.calledProcessInstanceId) {
+            return <a href={`#/process-instance/${value.calledProcessInstanceId}/runtime`}>{value.activityName}</a>;
+          }
+          return value.activityName;
+        },
       },
       {
         Header: 'Start Date',
@@ -35,13 +46,13 @@ const AuditLogTable: React.FC<Props> = ({ activities }) => {
         accessor: 'canceled',
       },
     ],
-    []
+    [activities, decisions]
   );
   const data = React.useMemo(
     () =>
       activities.map((activity: any) => {
         return {
-          activityName: activity.activityName,
+          activityName: activity,
           startDate: activity.startTime.split('.')[0],
           endDate: activity.endTime ? activity.endTime.split('.')[0] : '',
           duration: activity.endTime
@@ -51,7 +62,7 @@ const AuditLogTable: React.FC<Props> = ({ activities }) => {
           canceled: activity.canceled ? 'true' : 'false',
         };
       }),
-    []
+    [activities, decisions]
   );
   const tableInstance = useTable({ columns: columns as any, data });
   const { getTableProps, getTableBodyProps, headerGroups, rows, prepareRow } = tableInstance;

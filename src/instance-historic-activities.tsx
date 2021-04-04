@@ -2,9 +2,10 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 
 import AuditLogTable from './Components/AuditLogTable';
+import { ToggleSequenceFlowButton } from './Components/ToggleSequenceFlowButton';
 import { InstancePluginParams } from './types';
 import { get } from './utils/api';
-import { filter } from './utils/misc';
+import { clearSequenceFlow, renderSequenceFlow } from './utils/bpmn';
 
 export default [
   {
@@ -45,6 +46,29 @@ export default [
             html: overlay,
           });
         }
+
+        const toggleSequenceFlowButton = document.createElement('div');
+        toggleSequenceFlowButton.style.cssText = `
+          position: absolute;
+          right: 15px;
+          top: 15px;
+        `;
+        viewer._container.appendChild(toggleSequenceFlowButton);
+        let sequenceFlow: any[] = [];
+        ReactDOM.render(
+          <React.StrictMode>
+            <ToggleSequenceFlowButton
+              onToggleSequenceFlow={(value: boolean) => {
+                if (value) {
+                  sequenceFlow = renderSequenceFlow(viewer, activities ?? []);
+                } else {
+                  clearSequenceFlow(sequenceFlow);
+                }
+              }}
+            />
+          </React.StrictMode>,
+          toggleSequenceFlowButton
+        );
       })();
     },
   },
@@ -56,13 +80,16 @@ export default [
     },
     render: (node: Element, { api, processInstanceId }: InstancePluginParams) => {
       (async () => {
-        const activities = filter(
-          await get(api, '/history/activity-instance', { processInstanceId }),
-          (activity: any) => activity.endTime
+        const [activities, decisions] = await Promise.all([
+          get(api, '/history/activity-instance', { processInstanceId }),
+          get(api, '/history/decision-instance', { processInstanceId }),
+        ]);
+        const decisionByActivity: Map<string, any> = new Map(
+          decisions.map((decision: any) => [decision.activityInstanceId, decision.id])
         );
-        activities.sort((a, b) => {
-          a = new Date(a.endTime);
-          b = new Date(b.endTime);
+        activities.sort((a: any, b: any) => {
+          a = a.endTime ? new Date(a.endTime) : new Date();
+          b = b.endTime ? new Date(b.endTime) : new Date();
           if (a > b) {
             return -1;
           }
@@ -73,7 +100,7 @@ export default [
         });
         ReactDOM.render(
           <React.StrictMode>
-            <AuditLogTable activities={activities} />
+            <AuditLogTable activities={activities} decisions={decisionByActivity} />
           </React.StrictMode>,
           node
         );
